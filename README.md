@@ -1,3 +1,15 @@
+# Biteable staff
+
+This fork of `chrome-aws-lambda` exists to facilitate building Chromium with proprietry codecs support enabled.
+
+We currently have an open PR to enable this support back upstream https://github.com/alixaxel/chrome-aws-lambda/pull/68.
+
+## Updating AWS Lambda Layer
+
+Simply follow the [compile](#compiling) and [AWS Lambda Layer](#aws-lambda-layer) steps outlined below.
+
+Once you have a `chrome_aws_lambda.zip` locally, this can be uploaded to our layer `arn:aws:lambda:us-east-1:444793955923:layer:chromium-78:2` as a new version.
+
 # chrome-aws-lambda
 
 [![chrome-aws-lambda](https://img.shields.io/npm/v/chrome-aws-lambda.svg?style=for-the-badge)](https://www.npmjs.com/package/chrome-aws-lambda)
