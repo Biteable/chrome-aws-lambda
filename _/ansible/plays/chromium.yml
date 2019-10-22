@@ -9,7 +9,7 @@
         ssh-keygen -b 2048 -t rsa -f ansible.pem -q -N '' && \
         chmod 0600 ansible.pem.pub
       args:
-        chdir: ../
+        chdir: ..
         creates: ansible.pem
 
     - name: Creating EC2 Key Pair
@@ -39,7 +39,7 @@
       ec2:
         group: Chromium
         image: "{{ image }}"
-        instance_type: c5d.9xlarge
+        instance_type: c5d.4xlarge
         instance_initiated_shutdown_behavior: terminate
         key_name: ansible
         wait: yes
@@ -81,7 +81,7 @@
   environment:
     LANG: en_US.UTF-8
     LC_ALL: en_US.UTF-8
-    PATH: "{{ ansible_env.PATH }}:/srv/source/depot_tools"
+    PATH: "{{ ansible_env.PATH }}:/usr/local/bin:/srv/source/depot_tools"
 
   tasks:
     - name: Installing Packages
@@ -237,10 +237,12 @@
           enable_media_remoting_rpc = false
           enable_nacl = false
           enable_one_click_signin = false
+          ffmpeg_branding = "Chrome"
           headless_use_embedded_resources = true
           icu_use_data_file = false
           is_component_build = false
           is_debug = false
+          proprietary_codecs = true
           symbol_level = 0
           target_cpu = "x64"
           target_os = "linux"
@@ -294,20 +296,11 @@
 
     - name: Compressing Chromium
       shell: |
-        /usr/local/bin/brotli --best --force {{ item }}
+        brotli --best --force {{ item }}
       args:
         chdir: /srv/build/chromium
       with_items:
         - "chromium-{{ version.stdout }}"
-
-    - name: Compressing SwiftShader
-      shell: |
-        /usr/local/bin/brotli --best --force {{ item }}
-      args:
-        chdir: /srv/source/chromium/src/out/Headless/swiftshader
-      with_items:
-        - libEGL.so
-        - libGLESv2.so
 
     - name: Downloading Chromium
       fetch:
@@ -318,15 +311,27 @@
       with_items:
         - "chromium-{{ version.stdout }}.br"
 
+    - name: Archiving SwiftShader
+      shell: |
+        tar --directory /srv/source/chromium/src/out/Headless/swiftshader --create --file swiftshader.tar libEGL.so libGLESv2.so
+      args:
+        chdir: /srv/build/chromium
+        creates: /srv/build/chromium/swiftshader.tar
+        warn: false
+
+    - name: Compressing SwiftShader
+      shell: |
+        brotli --best --force swiftshader.tar
+      args:
+        chdir: /srv/build/chromium
+        creates: /srv/build/chromium/swiftshader.tar.br
+
     - name: Downloading SwiftShader
       fetch:
-        src: "/srv/source/chromium/src/out/Headless/swiftshader/{{ item }}"
-        dest: ../../../bin/swiftshader/
+        src: /srv/build/chromium/swiftshader.tar.br
+        dest: ../../../bin/
         flat: yes
         fail_on_missing: true
-      with_items:
-        - libEGL.so.br
-        - libGLESv2.so.br
 
 - name: Teardown AWS
   hosts: localhost
